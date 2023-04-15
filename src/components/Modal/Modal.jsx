@@ -1,8 +1,15 @@
+import PropTypes from "prop-types"
 import { createPortal } from 'react-dom';
 import { Component } from 'react';
 import css from './Modal.module.css';
 
 export class Modal extends Component {
+  static propTypes = {
+    descr: PropTypes.string.isRequired,
+    link: PropTypes.string.isRequired,
+    onClose: PropTypes.func.isRequired,
+  };
+
   componentDidMount() {
     window.addEventListener('keydown', this.handleKeydown);
   }
@@ -33,4 +40,10 @@ export class Modal extends Component {
       document.getElementById('modal-root')
     );
   }
+}
+
+Modal.propTypes = {
+  descr: PropTypes.any,
+  link: PropTypes.any,
+  onClose: PropTypes.func
 }
