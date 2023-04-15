@@ -1,12 +1,13 @@
 import { Component } from 'react';
-import { ProgressBar } from 'react-loader-spinner';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.min.css';
-import { Searchbar } from '../Searchbar/Searchbar';
 
-import { ImageGallery } from '../ImageGallery/ImageGallery';
-import { Button } from '../Button/Button';
 import { fetchImages } from 'services/API';
+import { Searchbar } from '../Searchbar/Searchbar';
+import { ImageGallery } from '../ImageGallery/ImageGallery';
+import { Loader } from '../Loader/Loader';
+import { Button } from '../Button/Button';
+import { Modal } from '../Modal/Modal';
 import css from './App.module.css';
 
 export class App extends Component {
@@ -15,6 +16,9 @@ export class App extends Component {
     total: null,
     images: [],
     page: 1,
+    loading: false,
+    showModal: false,
+    modal: {},
   };
 
   showNotification = () => {
@@ -24,14 +28,24 @@ export class App extends Component {
     );
   };
 
+  handleOpenModal = id => {
+    this.setState(({ images }) => ({
+      modal: images.find(img => img.id === id),
+      showModal: true,
+    }));
+  };
+
+  handleCloseModal = () => this.setState({ showModal: false });
+
   handleFetch = async () => {
     const { search, page } = this.state;
     try {
       const searchData = await fetchImages(search, page);
       this.setState(
-        prev => ({
-          images: [...prev.images, ...searchData.results],
+        ({ images }) => ({
+          images: [...images, ...searchData.results],
           total: searchData.total,
+          loading: false,
         }),
         this.showNotification
       );
@@ -40,38 +54,45 @@ export class App extends Component {
     }
   };
 
-  handleSubmit = async e => {
-    e.preventDefault();
-    this.setState({
-      search: e.target.elements.search.value,
-      page: 1,
-      images: [],
-    });
-    e.target.reset();
-    await this.handleFetch();
+  handleSubmit = async search => {
+    this.setState(
+      {
+        search,
+        page: 1,
+        images: [],
+        loading: true,
+      },
+      this.handleFetch
+    );
   };
 
   handleLoadMore = async () => {
-    this.setState(prev => ({ page: prev.page + 1 }));
-    await this.handleFetch();
+    this.setState(
+      ({ page }) => ({
+        page: page + 1,
+        loading: true,
+      }),
+      this.handleFetch
+    );
   };
 
   render() {
+    const { images, loading, total, showModal, modal } = this.state;
+    const isMore = images.length !== 0 && images.length < total;
     return (
       <div className={css.App}>
         <Searchbar onSubmit={this.handleSubmit} />
-        <ProgressBar
-          height="80"
-          width="80"
-          ariaLabel="progress-bar-loading"
-          wrapperStyle={{}}
-          wrapperClass="progress-bar-wrapper"
-          borderColor="#F4442E"
-          barColor="#51E5FF"
-        />
-        <ImageGallery images={this.state.images} />
-        <Button onLoadMore={this.handleLoadMore} />
+        <ImageGallery images={this.state.images} openModal={this.handleOpenModal} />
+        {loading && <Loader />}
+        {isMore && <Button onLoadMore={this.handleLoadMore} />}
         <ToastContainer />
+        {showModal && (
+          <Modal
+            link={modal.largeImageURL}
+            descr={modal.tags}
+            onClose={this.handleCloseModal}
+          />
+        )}
       </div>
     );
   }
