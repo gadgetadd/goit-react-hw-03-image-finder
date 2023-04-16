@@ -8,6 +8,7 @@ import { ImageGallery } from '../ImageGallery/ImageGallery';
 import { Loader } from '../Loader/Loader';
 import { Button } from '../Button/Button';
 import { Modal } from '../Modal/Modal';
+import { Placeholder } from '../Placeholder/Placeholder';
 import css from './App.module.css';
 
 export class App extends Component {
@@ -21,12 +22,17 @@ export class App extends Component {
     modal: {},
   };
 
-  showNotification = () => {
-    const { total, images, search } = this.state;
-    toast(
-      `We found ${images.length} out of ${total} images matching "${search}"`
-    );
-  };
+  componentDidUpdate(_, prevState) {
+    const { total, images, search, page, loading } = this.state;
+    const isFetch = prevState.search !== search || prevState.page !== page;
+    const isFetched =
+      prevState.images !== images && prevState.loading !== loading;
+    isFetch && this.handleFetch();
+    isFetched &&
+      toast(
+        `We found ${images.length} out of ${total} images matching "${search}"`
+      );
+  }
 
   handleOpenModal = id => {
     this.setState(({ images }) => ({
@@ -39,50 +45,56 @@ export class App extends Component {
 
   handleFetch = async () => {
     const { search, page } = this.state;
+    this.setState({ loading: true });
     try {
       const searchData = await fetchImages(search, page);
-      this.setState(
-        ({ images }) => ({
-          images: [...images, ...searchData.results],
-          total: searchData.total,
-          loading: false,
-        }),
-        this.showNotification
-      );
+      this.setState(({ images }) => ({
+        images: [...images, ...searchData.results],
+        total: searchData.total,
+      }));
     } catch {
       toast.error('Something went wrong. Please, try again');
+    } finally {
+      this.setState({ loading: false });
     }
   };
 
-  handleSubmit = async search => {
-    this.setState(
-      {
+  handleSubmit = search => {
+    if (this.state.search !== search) {
+      this.setState({
         search,
         page: 1,
         images: [],
-        loading: true,
-      },
-      this.handleFetch
-    );
+      });
+    } else {
+      toast(
+        `We've already searched for images matching "${search}".
+        Please enter another request.`
+      );
+    }
   };
 
-  handleLoadMore = async () => {
-    this.setState(
-      ({ page }) => ({
-        page: page + 1,
-        loading: true,
-      }),
-      this.handleFetch
-    );
+  handleLoadMore = () => {
+    this.setState(({ page }) => ({
+      page: page + 1,
+    }));
   };
 
   render() {
     const { images, loading, total, showModal, modal } = this.state;
     const isMore = images.length !== 0 && images.length < total;
+    const isEmpty = images.length === 0 && !loading;
     return (
       <div className={css.App}>
         <Searchbar onSubmit={this.handleSubmit} />
-        <ImageGallery images={this.state.images} openModal={this.handleOpenModal} />
+        {isEmpty ? (
+          <Placeholder />
+        ) : (
+          <ImageGallery
+            images={this.state.images}
+            openModal={this.handleOpenModal}
+          />
+        )}
         {loading && <Loader />}
         {isMore && <Button onLoadMore={this.handleLoadMore} />}
         <ToastContainer />
