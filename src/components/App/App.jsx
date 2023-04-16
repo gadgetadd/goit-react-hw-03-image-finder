@@ -82,7 +82,7 @@ export class App extends Component {
 
   render() {
     const { images, loading, total, showModal, modal } = this.state;
-    const isMore = images.length !== 0 && images.length < total;
+    const isMore = images.length !== 0 && images.length < total && !loading;
     const isEmpty = images.length === 0 && !loading;
     return (
       <div className={css.App}>
