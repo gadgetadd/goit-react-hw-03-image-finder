@@ -19,7 +19,6 @@ export const Searchbar = ({ onSubmit }) => {
         'Please enter a valid search query in Latin containing 3 to 50 characters'
       );
     }
-    e.target.reset();
   };
 
   return (
